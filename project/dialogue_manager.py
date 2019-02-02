@@ -23,7 +23,7 @@ class ThreadRanker(object):
 
         # HINT: you have already implemented a similar routine in the 3rd assignment.
         
-        question_vec = #### YOUR CODE HERE ####
+        question_vec = question_to_vec(question, thread_embeddings)
         best_thread = #### YOUR CODE HERE ####
         
         return thread_ids[best_thread]
@@ -61,9 +61,10 @@ class DialogueManager(object):
         # Recognize intent of the question using `intent_recognizer`.
         # Don't forget to prepare question and calculate features for the question.
         
-        prepared_question = #### YOUR CODE HERE ####
-        features = #### YOUR CODE HERE ####
-        intent = #### YOUR CODE HERE ####
+        prepared_question = text_prepare(question)
+        features = self.tfidf_vectorizer.transform(prepared_question)
+        intent = self.intent_recognizer.predict(X_test_tfidf)
+
 
         # Chit-chat part:   
         if intent == 'dialogue':
@@ -74,10 +75,10 @@ class DialogueManager(object):
         # Goal-oriented part:
         else:        
             # Pass features to tag_classifier to get predictions.
-            tag = #### YOUR CODE HERE ####
+            tag = self.tag_classifier.predict(features)
             
             # Pass prepared_question to thread_ranker to get predictions.
-            thread_id = #### YOUR CODE HERE ####
+            thread_id = self.thread_ranker.get_best_thread(question, tag)
            
             return self.ANSWER_TEMPLATE % (tag, thread_id)
 

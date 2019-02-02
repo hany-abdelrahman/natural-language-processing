@@ -61,8 +61,8 @@ def question_to_vec(question, embeddings, dim=300):
     vec = np.zeros(dim)
     cnt = 0
     for word in question.split():
-        if (word in wv_embeddings):
-            vec += wv_embeddings[word]
+        if (word in embeddings):
+            vec += embeddings[word]
             cnt += 1
     if (cnt != 0):
         vec = vec / cnt
