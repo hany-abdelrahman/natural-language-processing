@@ -2,6 +2,7 @@ import os
 from sklearn.metrics.pairwise import pairwise_distances_argmin
 
 from chatterbot import ChatBot
+from chatterbot.trainers import ChatterBotCorpusTrainer
 from utils import *
 
 
@@ -14,17 +15,30 @@ class ThreadRanker(object):
         embeddings_path = os.path.join(self.thread_embeddings_folder, tag_name + ".pkl")
         thread_ids, thread_embeddings = unpickle_file(embeddings_path)
         return thread_ids, thread_embeddings
+    
+    def rank_candidates(question_vec, candidates_vec):
+        """
+            question_vec: question embedding string
+            candidates_vec: a list of embeddings for each candidate
+            
+            result: index of best ranked element
+        """
+        scores = []
+        for candidate_vec in candidates_vec:
+            score = cosine_similarity(question_vec, candidate_vec)
+            scores.append(-1*score)
+
+        sorted(range(len(scores)), key=lambda k: scores[k]) # Maximum shame...
+        return scores[0]
 
     def get_best_thread(self, question, tag_name):
         """ Returns id of the most similar thread for the question.
             The search is performed across the threads with a given tag.
         """
         thread_ids, thread_embeddings = self.__load_embeddings_by_tag(tag_name)
-
-        # HINT: you have already implemented a similar routine in the 3rd assignment.
         
         question_vec = question_to_vec(question, thread_embeddings)
-        best_thread = #### YOUR CODE HERE ####
+        best_thread = rank_candidates(question_vec, thread_embeddings)
         
         return thread_ids[best_thread]
 
@@ -42,7 +56,8 @@ class DialogueManager(object):
         # Goal-oriented part:
         self.tag_classifier = unpickle_file(paths['TAG_CLASSIFIER'])
         self.thread_ranker = ThreadRanker(paths)
-
+        self.chitchat_bot = create_chitchat_bot()
+        
     def create_chitchat_bot(self):
         """Initializes self.chitchat_bot with some conversational model."""
 
@@ -51,9 +66,12 @@ class DialogueManager(object):
         # "chatterbot.trainers.ChatterBotCorpusTrainer"
         # and then calling *train* function with "chatterbot.corpus.english" param
         
-        ########################
-        #### YOUR CODE HERE ####
-        ########################
+        chatbot = ChatBot('Ron Obvious')
+        trainer = ChatterBotCorpusTrainer(chatbot)
+
+        # Train the chatbot based on the english corpus
+        trainer.train("chatterbot.corpus.english")
+        return chatbot
        
     def generate_answer(self, question):
         """Combines stackoverflow and chitchat parts using intent recognition."""
@@ -63,13 +81,12 @@ class DialogueManager(object):
         
         prepared_question = text_prepare(question)
         features = self.tfidf_vectorizer.transform(prepared_question)
-        intent = self.intent_recognizer.predict(X_test_tfidf)
-
+        intent = self.intent_recognizer.predict(features)
 
         # Chit-chat part:   
         if intent == 'dialogue':
             # Pass question to chitchat_bot to generate a response.       
-            response = #### YOUR CODE HERE ####
+            response = self.chitchat_bot.get_response(prepared_question)
             return response
         
         # Goal-oriented part:
