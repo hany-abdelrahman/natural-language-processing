@@ -2,6 +2,7 @@ import nltk
 import pickle
 import re
 import numpy as np
+import gensim.models
 
 nltk.download('stopwords')
 from nltk.corpus import stopwords
@@ -46,31 +47,26 @@ def load_embeddings(embeddings_path):
     # Note that here you also need to know the dimension of the loaded embeddings.
     # When you load the embeddings, use numpy.float32 type as dtype
 
-    ########################
-    #### YOUR CODE HERE ####
-    ########################
+    wv_embeddings = gensim.models.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin.gz', binary=True, limit=500000)
+    return wv_embeddings, 300
 
-    # remove this when you're done
-    raise NotImplementedError(
-        "Open utils.py and fill with your code. In case of Google Colab, download"
-        "(https://github.com/hse-aml/natural-language-processing/blob/master/project/utils.py), "
-        "edit locally and upload using '> arrow on the left edge' -> Files -> UPLOAD")
+def question_to_vec(question, embeddings, dim=300):
+    """
+        question: a string
+        embeddings: dict where the key is a word and a value is its' embedding
+        dim: size of the representation
 
-
-def question_to_vec(question, embeddings, dim):
-    """Transforms a string to an embedding by averaging word embeddings."""
-    
-    # Hint: you have already implemented exactly this function in the 3rd assignment.
-
-    ########################
-    #### YOUR CODE HERE ####
-    ########################
-
-    # remove this when you're done
-    raise NotImplementedError(
-        "Open utils.py and fill with your code. In case of Google Colab, download"
-        "(https://github.com/hse-aml/natural-language-processing/blob/master/project/utils.py), "
-        "edit locally and upload using '> arrow on the left edge' -> Files -> UPLOAD")
+        result: vector representation for the question
+    """
+    vec = np.zeros(dim)
+    cnt = 0
+    for word in question.split():
+        if (word in wv_embeddings):
+            vec += wv_embeddings[word]
+            cnt += 1
+    if (cnt != 0):
+        vec = vec / cnt
+    return vec
 
 
 def unpickle_file(filename):
