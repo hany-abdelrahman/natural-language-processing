@@ -1,5 +1,6 @@
 import os
 from sklearn.metrics.pairwise import pairwise_distances_argmin
+from sklearn.metrics.pairwise import cosine_similarity
 
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
@@ -15,21 +16,6 @@ class ThreadRanker(object):
         embeddings_path = os.path.join(self.thread_embeddings_folder, tag_name + ".pkl")
         thread_ids, thread_embeddings = unpickle_file(embeddings_path)
         return thread_ids, thread_embeddings
-    
-    def rank_candidates(question_vec, candidates_vec):
-        """
-            question_vec: question embedding string
-            candidates_vec: a list of embeddings for each candidate
-            
-            result: index of best ranked element
-        """
-        scores = []
-        for candidate_vec in candidates_vec:
-            score = cosine_similarity(question_vec, candidate_vec)
-            scores.append(-1*score)
-
-        sorted(range(len(scores)), key=lambda k: scores[k]) # Maximum shame...
-        return scores[0]
 
     def get_best_thread(self, question, tag_name):
         """ Returns id of the most similar thread for the question.
@@ -37,11 +23,9 @@ class ThreadRanker(object):
         """
         thread_ids, thread_embeddings = self.__load_embeddings_by_tag(tag_name)
         
-        question_vec = question_to_vec(question, thread_embeddings)
-        best_thread = rank_candidates(question_vec, thread_embeddings)
-        
+        question_vec = question_to_vec(question, self.word_embeddings)
+        best_thread = pairwise_distances_argmin([question_vec], thread_embeddings, metric='cosine')[0]
         return thread_ids[best_thread]
-
 
 class DialogueManager(object):
     def __init__(self, paths):
@@ -56,7 +40,7 @@ class DialogueManager(object):
         # Goal-oriented part:
         self.tag_classifier = unpickle_file(paths['TAG_CLASSIFIER'])
         self.thread_ranker = ThreadRanker(paths)
-        self.chitchat_bot = create_chitchat_bot()
+        self.chitchat_bot = self.create_chitchat_bot()
         
     def create_chitchat_bot(self):
         """Initializes self.chitchat_bot with some conversational model."""
@@ -80,7 +64,7 @@ class DialogueManager(object):
         # Don't forget to prepare question and calculate features for the question.
         
         prepared_question = text_prepare(question)
-        features = self.tfidf_vectorizer.transform(prepared_question)
+        features = self.tfidf_vectorizer.transform([prepared_question])
         intent = self.intent_recognizer.predict(features)
 
         # Chit-chat part:   
@@ -92,10 +76,10 @@ class DialogueManager(object):
         # Goal-oriented part:
         else:        
             # Pass features to tag_classifier to get predictions.
-            tag = self.tag_classifier.predict(features)
-            
+            tag = self.tag_classifier.predict(features)[0]
+            print(tag)
             # Pass prepared_question to thread_ranker to get predictions.
-            thread_id = self.thread_ranker.get_best_thread(question, tag)
+            thread_id = self.thread_ranker.get_best_thread(prepared_question, tag)
            
             return self.ANSWER_TEMPLATE % (tag, thread_id)
 
