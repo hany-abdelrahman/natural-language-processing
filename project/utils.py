@@ -13,7 +13,7 @@ RESOURCE_PATH = {
     'TAG_CLASSIFIER': 'tag_classifier.pkl',
     'TFIDF_VECTORIZER': 'tfidf_vectorizer.pkl',
     'THREAD_EMBEDDINGS_FOLDER': 'thread_embeddings_by_tags',
-    'WORD_EMBEDDINGS': 'word_embeddings.tsv',
+    'WORD_EMBEDDINGS': 'GoogleNews-vectors-negative300.bin.gz',
 }
 
 
@@ -47,7 +47,7 @@ def load_embeddings(embeddings_path):
     # Note that here you also need to know the dimension of the loaded embeddings.
     # When you load the embeddings, use numpy.float32 type as dtype
 
-    wv_embeddings = gensim.models.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin.gz', binary=True, limit=500000)
+    wv_embeddings = gensim.models.KeyedVectors.load_word2vec_format(embeddings_path, binary=True, limit=500000)
     return wv_embeddings, 300
 
 def question_to_vec(question, embeddings, dim=300):
